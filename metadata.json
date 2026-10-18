@@ -1,0 +1,6 @@
+{
+  "name": "Narayana Prodigy",
+  "description": "Faculty Academic Portal for Narayana Prodigy — Featuring interactive weekly schedules, batch resource drives, Class ID QR allocation, poster studio, schedule editor, backup center, and role-based faculty access.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
