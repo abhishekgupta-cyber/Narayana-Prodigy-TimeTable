@@ -388,17 +388,28 @@ export const PosterStudio: React.FC<PosterStudioProps> = ({ classes = [], availa
       const dayCls = sortClassesChronologically(unsorted);
       const firstDate = dayCls.find(c => c.dateStr)?.dateStr || dayCls.find(c => c.dateISO)?.dateISO || '';
 
-      const items: ScheduleSlot[] = dayCls.map(c => ({
-        type: c.isHoliday ? 'holiday' : c.classType === 'doubt' ? 'doubt' : 'class',
-        slot: c.slotName || 'LEC',
-        batchName: activeBatchKey === 'All Batches Combined' ? getCanonicalBatchName(c.batchName) : activeBatchKey,
-        originalBatchName: c.batchName,
-        subject: c.isHoliday ? (c.holidayTitle || 'CLASS HOLIDAY') : c.subject,
-        facultyName: c.facultyName,
-        time: `${c.startTime}–${c.endTime}`,
-        dateStr: c.dateStr,
-        holidayTitle: c.holidayTitle
-      }));
+      const items: ScheduleSlot[] = dayCls.map((c, sIdx) => {
+        let cleanSlot = `Slot ${sIdx + 1}`;
+        if (c.slotName && /^slot\s*\d+/i.test(c.slotName)) {
+          cleanSlot = c.slotName.replace(/^slot\s*/i, 'Slot ');
+        } else if (c.slotName && /^s\d+/i.test(c.slotName)) {
+          cleanSlot = `Slot ${c.slotName.slice(1)}`;
+        } else if (c.slotName && c.slotName.trim().length <= 12) {
+          cleanSlot = c.slotName.trim();
+        }
+
+        return {
+          type: c.isHoliday ? 'holiday' : c.classType === 'doubt' ? 'doubt' : 'class',
+          slot: cleanSlot,
+          batchName: activeBatchKey === 'All Batches Combined' ? getCanonicalBatchName(c.batchName) : activeBatchKey,
+          originalBatchName: c.batchName,
+          subject: c.isHoliday ? (c.holidayTitle || 'CLASS HOLIDAY') : c.subject,
+          facultyName: c.facultyName,
+          time: `${c.startTime}–${c.endTime}`,
+          dateStr: c.dateStr,
+          holidayTitle: c.holidayTitle
+        };
+      });
 
       return {
         day: dayName,
@@ -647,7 +658,7 @@ export const PosterStudio: React.FC<PosterStudioProps> = ({ classes = [], availa
           ctx.font = 'italic 12px sans-serif';
           ctx.fillText('No classes scheduled', x + 14, y + 80);
         } else if (itemCount === 1) {
-          // 1 CLASS HERO PRESENTATION (Requirement 15: Large, spacious, prominent display)
+          // 1 CLASS HERO PRESENTATION (Requirements 15, 35, 36: Large, spacious, clear Slot Number & Type badge)
           const it = dayObj.items[0];
           const sColor =
             it.type === 'holiday'
@@ -656,34 +667,62 @@ export const PosterStudio: React.FC<PosterStudioProps> = ({ classes = [], availa
               ? subjectColors.Doubt
               : subjectColors[it.subject] || headingColor;
 
-          const sy = y + 72;
+          const sy = y + 62;
           ctx.fillStyle = sColor;
           ctx.beginPath();
-          ctx.roundRect(x + 14, sy, 5, 84, 3);
+          ctx.roundRect(x + 14, sy, 5, 96, 3);
           ctx.fill();
 
+          // Slot badge pill
+          const slotLabel = it.slot ? it.slot.toUpperCase() : 'SLOT 1';
+          ctx.fillStyle = isLight ? '#0072BC' : '#0284C7';
+          ctx.beginPath();
+          ctx.roundRect(x + 26, sy - 2, 54, 18, 4);
+          ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 9.5px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(slotLabel, x + 53, sy + 11);
+          ctx.textAlign = 'left';
+
+          // Lecture vs Doubt color badge pill (Requirement 35)
+          const typeLabel = it.type === 'doubt' ? 'DOUBT SESSION' : it.type === 'holiday' ? 'HOLIDAY' : 'CLASS / LECTURE';
+          const typeBgColor = it.type === 'doubt' ? '#F59E0B' : it.type === 'holiday' ? '#EF4444' : '#10B981';
+          ctx.fillStyle = typeBgColor;
+          ctx.beginPath();
+          ctx.roundRect(x + 86, sy - 2, it.type === 'doubt' ? 96 : 104, 18, 4);
+          ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '800 9.5px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(typeLabel, x + 86 + (it.type === 'doubt' ? 48 : 52), sy + 11);
+          ctx.textAlign = 'left';
+
+          // Subject Name
           ctx.fillStyle = primaryText;
           ctx.font = `900 ${Math.round(16 * (fontScale / 100))}px sans-serif`;
-          ctx.fillText(it.subject.slice(0, 22), x + 26, sy + 24);
+          ctx.fillText(it.subject.slice(0, 22), x + 26, sy + 40);
 
+          // Timing Display (Requirement 36)
           ctx.fillStyle = accentColor;
           ctx.font = 'bold 12.5px monospace';
-          ctx.fillText(it.time, x + 26, sy + 48);
+          ctx.fillText(it.time, x + 26, sy + 62);
 
+          // Batch & Faculty details
           ctx.fillStyle = sColor;
           ctx.font = 'bold 11px sans-serif';
           const subLine = showEducatorOnPoster && it.facultyName
             ? `${it.batchName} • ${it.facultyName}`
             : `BATCH: ${it.batchName}`;
-          ctx.fillText(subLine.slice(0, 32), x + 26, sy + 72);
+          ctx.fillText(subLine.slice(0, 32), x + 26, sy + 84);
         } else {
-          // 2 to 5 CLASSES AUTO-COMPACT PRESENTATION (Requirement 15: Never cut off)
-          const slotStep = itemCount >= 4 ? 44 : 52;
-          const barH = itemCount >= 4 ? 32 : 40;
-          const subjSize = itemCount >= 4 ? 11.5 : 13;
+          // 2 to 5 CLASSES AUTO-COMPACT PRESENTATION (Requirements 15, 35, 36: Clean fit with Slot & Type badges)
+          const slotStep = itemCount >= 4 ? 46 : 53;
+          const barH = itemCount >= 4 ? 36 : 42;
+          const subjSize = itemCount >= 4 ? 11 : 12.5;
 
           dayObj.items.slice(0, 5).forEach((it, sIdx) => {
-            const sy = y + 50 + sIdx * slotStep;
+            const sy = y + 48 + sIdx * slotStep;
             const sColor =
               it.type === 'holiday'
                 ? subjectColors.Holiday
@@ -696,22 +735,52 @@ export const PosterStudio: React.FC<PosterStudioProps> = ({ classes = [], availa
             ctx.roundRect(x + 14, sy, 3.5, barH, 2);
             ctx.fill();
 
-            ctx.fillStyle = primaryText;
-            ctx.font = `bold ${Math.round(subjSize * (fontScale / 100))}px sans-serif`;
-            ctx.fillText(it.subject.slice(0, 22), x + 24, sy + 13);
+            // Compact Slot & Type Badges (Requirements 35 & 36)
+            const typeLabel = it.type === 'doubt' ? 'DOUBT' : it.type === 'holiday' ? 'HOLIDAY' : 'CLASS';
+            const typeBgColor = it.type === 'doubt' ? '#F59E0B' : it.type === 'holiday' ? '#EF4444' : '#10B981';
+            const slotLabel = it.slot ? it.slot.toUpperCase() : `S${sIdx + 1}`;
 
-            ctx.fillStyle = mutedText;
-            ctx.font = itemCount >= 4 ? '600 9.5px monospace' : '600 10px monospace';
-            ctx.textAlign = 'right';
-            ctx.fillText(it.time, x + cardW - 14, sy + 13);
+            // Draw Type Badge
+            ctx.fillStyle = typeBgColor;
+            ctx.beginPath();
+            ctx.roundRect(x + 22, sy + 1, 44, 12, 3);
+            ctx.fill();
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '800 7.5px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(typeLabel, x + 44, sy + 9.5);
             ctx.textAlign = 'left';
 
+            // Draw Slot Badge
+            ctx.fillStyle = isLight ? '#E2E8F0' : '#1E293B';
+            ctx.beginPath();
+            ctx.roundRect(x + 70, sy + 1, 42, 12, 3);
+            ctx.fill();
+            ctx.fillStyle = primaryText;
+            ctx.font = 'bold 7.5px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(slotLabel.slice(0, 6), x + 91, sy + 9.5);
+            ctx.textAlign = 'left';
+
+            // Timing in top-right
+            ctx.fillStyle = mutedText;
+            ctx.font = itemCount >= 4 ? '600 9px monospace' : '600 9.5px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(it.time, x + cardW - 14, sy + 10);
+            ctx.textAlign = 'left';
+
+            // Subject Line
+            ctx.fillStyle = primaryText;
+            ctx.font = `bold ${Math.round(subjSize * (fontScale / 100))}px sans-serif`;
+            ctx.fillText(it.subject.slice(0, 20), x + 22, sy + 24);
+
+            // Subline (Batch & Faculty)
             ctx.fillStyle = sColor;
-            ctx.font = itemCount >= 4 ? 'bold 9px sans-serif' : 'bold 10px sans-serif';
+            ctx.font = itemCount >= 4 ? 'bold 8.5px sans-serif' : 'bold 9px sans-serif';
             const subLine = showEducatorOnPoster && it.facultyName
               ? `${it.batchName} • ${it.facultyName}`
               : `BATCH: ${it.batchName}`;
-            ctx.fillText(subLine.slice(0, 34), x + 24, sy + (itemCount >= 4 ? 26 : 30));
+            ctx.fillText(subLine.slice(0, 34), x + 22, sy + (itemCount >= 4 ? 34 : 37));
           });
         }
       });
@@ -1640,6 +1709,27 @@ export const PosterStudio: React.FC<PosterStudioProps> = ({ classes = [], availa
                                     className="w-2 h-14 rounded-full flex-shrink-0 mt-0.5 shadow-md"
                                   />
                                   <div className="flex-1 min-w-0 space-y-1">
+                                    {/* Slot and Class vs Doubt Badges (Requirements 35 & 36) */}
+                                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                      <span className="px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase bg-sky-500/20 text-sky-300 border border-sky-400/30 font-mono tracking-wider">
+                                        {it.slot || 'SLOT 1'}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider text-white shadow-sm ${
+                                          it.type === 'doubt'
+                                            ? 'bg-amber-500'
+                                            : it.type === 'holiday'
+                                            ? 'bg-rose-500'
+                                            : 'bg-emerald-500'
+                                        }`}
+                                      >
+                                        {it.type === 'doubt'
+                                          ? 'DOUBT SESSION'
+                                          : it.type === 'holiday'
+                                          ? 'HOLIDAY'
+                                          : 'CLASS / LECTURE'}
+                                      </span>
+                                    </div>
                                     <div className="flex justify-between items-baseline gap-2 flex-wrap">
                                       <span
                                         style={{ fontSize: `${Math.round(15 * (fontScale / 100))}px` }}
@@ -1692,6 +1782,27 @@ export const PosterStudio: React.FC<PosterStudioProps> = ({ classes = [], availa
                                     }`}
                                   />
                                   <div className="flex-1 min-w-0">
+                                    {/* Slot and Class vs Doubt Badges (Requirements 35 & 36) */}
+                                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white leading-none shadow-sm ${
+                                          it.type === 'doubt'
+                                            ? 'bg-amber-500'
+                                            : it.type === 'holiday'
+                                            ? 'bg-rose-500'
+                                            : 'bg-emerald-500'
+                                        }`}
+                                      >
+                                        {it.type === 'doubt'
+                                          ? 'DOUBT'
+                                          : it.type === 'holiday'
+                                          ? 'HOLIDAY'
+                                          : 'CLASS'}
+                                      </span>
+                                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-white/10 text-white/90 font-mono leading-none border border-white/10">
+                                        {it.slot || `SLOT ${i + 1}`}
+                                      </span>
+                                    </div>
                                     <div className="flex justify-between items-baseline gap-1">
                                       <span
                                         style={{

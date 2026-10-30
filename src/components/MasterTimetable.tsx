@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, Filter, BookOpenCheck, ExternalLink, Layers, Edit, Trash2, Video } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { ClassSession, Faculty } from '../types';
-import { ACADEMIC_WEEKS, filterClassesByWeek, sortClassesChronologically, getCurrentAcademicWeekId } from '../utils/weekUtils';
+import { ACADEMIC_WEEKS, filterClassesByWeek, sortClassesChronologically, getCurrentAcademicWeekId, getSafeMeetingUrl } from '../utils/weekUtils';
 import { EditClassModal } from './EditClassModal';
 
 interface MasterTimetableProps {
@@ -188,16 +188,32 @@ export const MasterTimetable: React.FC<MasterTimetableProps> = ({
                     {/* Action Controls: Join, Edit Class, Delete Class */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
-                        <a
-                          href={`https://zoom.us/j/${cls.zoomMeetingId?.replace(/\s/g, '')}?pwd=${cls.zoomPassword}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 font-grotesk font-bold text-[11px] flex items-center gap-1 transition"
-                          title="Launch Zoom Class"
-                        >
-                          <Video size={12} />
-                          <span>Join</span>
-                        </a>
+                        {(() => {
+                          const meetUrl = getSafeMeetingUrl(cls);
+                          if (!meetUrl) {
+                            return (
+                              <span
+                                className="px-2.5 py-1 rounded-lg bg-white/[0.03] text-slate-500 font-grotesk font-semibold text-[11px] flex items-center gap-1 cursor-not-allowed select-none opacity-50"
+                                title="No link allotted yet"
+                              >
+                                <Video size={12} />
+                                <span>No Link</span>
+                              </span>
+                            );
+                          }
+                          return (
+                            <a
+                              href={meetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 font-grotesk font-bold text-[11px] flex items-center gap-1 transition"
+                              title="Launch Meeting in New Window"
+                            >
+                              <Video size={12} />
+                              <span>Join</span>
+                            </a>
+                          );
+                        })()}
 
                         <button
                           onClick={() => setEditingClass(cls)}

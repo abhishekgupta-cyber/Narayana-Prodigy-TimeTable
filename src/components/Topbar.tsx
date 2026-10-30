@@ -96,6 +96,9 @@ export const Topbar: React.FC<TopbarProps> = ({
           <h1 className="font-grotesk font-bold text-xs sm:text-sm text-white tracking-wide truncate">
             {currentTabName}
           </h1>
+          <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-extrabold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            PROD v4.2
+          </span>
         </div>
       </div>
 

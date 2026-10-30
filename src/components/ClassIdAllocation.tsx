@@ -91,6 +91,29 @@ export const ClassIdAllocation: React.FC<ClassIdAllocationProps> = ({
   const [formError, setFormError] = useState<string>('');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
 
+  // Inline Link Paste input states (Requirement 31)
+  const [inlineLinks, setInlineLinks] = useState<Record<string, string>>({});
+  const [savedInlineId, setSavedInlineId] = useState<string | null>(null);
+
+  const handleInlineLinkChange = (classId: string, val: string) => {
+    setInlineLinks(prev => ({ ...prev, [classId]: val }));
+  };
+
+  const handleSaveInlineLink = (cls: ClassSession) => {
+    const raw = (inlineLinks[cls.id] !== undefined ? inlineLinks[cls.id] : cls.directLink || '').trim();
+    const normalized = raw
+      ? raw.startsWith('http://') || raw.startsWith('https://')
+        ? raw
+        : `https://${raw}`
+      : undefined;
+
+    if (onUpdateClassSession) {
+      onUpdateClassSession(cls.id, { directLink: normalized });
+      setSavedInlineId(cls.id);
+      setTimeout(() => setSavedInlineId(null), 2500);
+    }
+  };
+
   const [batches, setBatches] = useState<ZoomBatchInfo[]>(() => {
     const saved = localStorage.getItem('np_zoom_batches');
     if (saved) {
@@ -644,18 +667,8 @@ export const ClassIdAllocation: React.FC<ClassIdAllocationProps> = ({
                                 </div>
                               </div>
 
-                              {/* Right: Link & Quick Actions */}
+                              {/* Right: Copy & QR Quick Actions */}
                               <div className="flex items-center gap-1.5 flex-shrink-0 self-end sm:self-center">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditClassSession(cls, batch)}
-                                  className="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 font-manrope font-bold text-[10px] flex items-center gap-1 cursor-pointer transition"
-                                  title="Allot or update meeting link for this exact class"
-                                >
-                                  <LinkIcon size={11} />
-                                  <span>{hasClassSpecificLink ? 'Change Link' : 'Allot Link'}</span>
-                                </button>
-
                                 <button
                                   type="button"
                                   onClick={() => handleCopy(classLink, `${cls.id}-link`)}
@@ -686,23 +699,66 @@ export const ClassIdAllocation: React.FC<ClassIdAllocationProps> = ({
                                 >
                                   <QrCode size={13} />
                                 </button>
+                              </div>
+                            </div>
+
+                            {/* DIRECT LINK PASTE INPUT BOX (Requirement 31 & 32: Aligned [Batch Name] -> [Subject Name] -> [Class Time] -> [Link Paste Box] -> [Join Meeting]) */}
+                            <div className="mt-2.5 pt-2 border-t border-white/5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <LinkIcon size={12} className="text-sky-400 flex-shrink-0" />
+                                <span className="text-[10px] font-mono text-slate-400 flex-shrink-0 hidden md:inline">Link:</span>
+                                <input
+                                  type="text"
+                                  placeholder={`Paste link for ${cls.subject} (${cls.startTime})...`}
+                                  value={inlineLinks[cls.id] !== undefined ? inlineLinks[cls.id] : cls.directLink || ''}
+                                  onChange={(e) => handleInlineLinkChange(cls.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleSaveInlineLink(cls);
+                                    }
+                                  }}
+                                  className="flex-1 min-w-0 bg-[#0a0e17] border border-white/10 focus:border-sky-500 rounded-lg px-2.5 py-1 text-xs font-mono text-white placeholder-slate-500 focus:outline-none transition"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-1.5 flex-shrink-0 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveInlineLink(cls)}
+                                  className={`px-3 py-1 rounded-lg font-manrope font-bold text-[11px] flex items-center gap-1 transition cursor-pointer shadow-sm ${
+                                    savedInlineId === cls.id
+                                      ? 'bg-emerald-500 text-white'
+                                      : 'bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/35'
+                                  }`}
+                                  title="Save link immediately with auto-prepended https://"
+                                >
+                                  {savedInlineId === cls.id ? (
+                                    <>
+                                      <Check size={12} className="text-white" />
+                                      <span>Saved!</span>
+                                    </>
+                                  ) : (
+                                    <span>Save Link</span>
+                                  )}
+                                </button>
 
                                 <a
                                   href={classLink}
                                   target="_blank"
-                                  rel="noreferrer"
-                                  className="px-2.5 py-1 rounded-lg bg-[#0072BC] hover:bg-[#005fa3] text-white font-manrope font-bold text-[10px] flex items-center gap-1 shadow-sm transition"
+                                  rel="noopener noreferrer"
+                                  className="px-2.5 py-1 rounded-lg bg-[#0072BC] hover:bg-[#005fa3] text-white font-manrope font-bold text-[11px] flex items-center gap-1 shadow-sm transition"
+                                  title="Open Meeting in New Window"
                                 >
-                                  <span>Launch</span>
+                                  <span>Join Meeting</span>
                                   <ExternalLink size={10} />
                                 </a>
                               </div>
                             </div>
 
                             {/* Class Link Preview */}
-                            <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-400">
+                            <div className="mt-2 pt-1.5 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-slate-400">
                               <span className="truncate max-w-[85%] text-slate-300">
-                                Link: {classLink}
+                                Active URL: {classLink}
                               </span>
                               {hasClassSpecificLink ? (
                                 <span className="text-emerald-400 font-bold flex items-center gap-1 flex-shrink-0">

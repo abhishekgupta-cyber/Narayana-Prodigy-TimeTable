@@ -43,7 +43,8 @@ import {
   getCurrentAcademicWeekId,
   getCurrentDayOfWeek,
   sortClassesChronologically,
-  isCurrentAcademicWeek
+  isCurrentAcademicWeek,
+  getSafeMeetingUrl
 } from '../utils/weekUtils';
 import { EditClassModal } from './EditClassModal';
 
@@ -1055,15 +1056,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div className="flex items-center gap-2 ml-auto flex-wrap">
                         {!cls.isCancelled && (
                           <>
-                            <a
-                              href={`https://zoom.us/j/${cls.zoomMeetingId?.replace(/\s/g, '')}?pwd=${cls.zoomPassword}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs font-grotesk font-semibold text-sky-400 hover:underline flex items-center gap-1"
-                            >
-                              <span>Join Zoom</span>
-                              <ExternalLink size={11} />
-                            </a>
+                            {(() => {
+                              const meetUrl = getSafeMeetingUrl(cls);
+                              if (!meetUrl) return null;
+                              return (
+                                <a
+                                  href={meetUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs font-grotesk font-semibold text-sky-400 hover:underline flex items-center gap-1"
+                                >
+                                  <span>Join Zoom</span>
+                                  <ExternalLink size={11} />
+                                </a>
+                              );
+                            })()}
                             <button
                               onClick={() => handleOpenCancelModal(cls)}
                               className="px-2 py-1 rounded-lg text-[10px] font-manrope font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/15 border border-rose-500/25 transition cursor-pointer"

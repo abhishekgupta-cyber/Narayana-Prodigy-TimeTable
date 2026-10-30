@@ -72,6 +72,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="h-16 px-4 flex items-center justify-between border-b border-white/[0.08]">
           <div className="flex items-center gap-2 overflow-hidden">
             <ProdigyLogo size={collapsed ? 'sm' : 'sm'} showText={!collapsed} />
+            {!collapsed && (
+              <span className="text-[9px] font-mono font-extrabold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                v4.2 PROD
+              </span>
+            )}
           </div>
           <button
             onClick={onToggleCollapse}

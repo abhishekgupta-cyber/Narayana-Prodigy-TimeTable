@@ -370,4 +370,31 @@ export const deduplicateClassesList = (classList: ClassSession[]): ClassSession[
   return sortClassesChronologically(Array.from(map.values()));
 };
 
+/**
+ * Returns a guaranteed absolute URL (prepending https:// if needed) for joining a class.
+ * Handles custom direct links, Zoom meeting IDs, and fallback links safely.
+ */
+export const getSafeMeetingUrl = (cls?: Partial<ClassSession>): string => {
+  if (!cls) return '';
+
+  // 1. Direct meeting link provided
+  if (cls.directLink && cls.directLink.trim()) {
+    const raw = cls.directLink.trim();
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return raw;
+    }
+    return `https://${raw}`;
+  }
+
+  // 2. Zoom Meeting ID & Password
+  if (cls.zoomMeetingId && cls.zoomMeetingId.trim()) {
+    const cleanId = cls.zoomMeetingId.replace(/\s+/g, '');
+    const pwdParam = cls.zoomPassword ? `?pwd=${encodeURIComponent(cls.zoomPassword.trim())}` : '';
+    return `https://zoom.us/j/${cleanId}${pwdParam}`;
+  }
+
+  return '';
+};
+
+
 

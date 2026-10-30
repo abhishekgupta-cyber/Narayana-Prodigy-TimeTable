@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://narayana-prodigy.vercel.app/sitemap.xml

@@ -22,7 +22,8 @@ import {
   getCurrentDayOfWeek,
   sortClassesChronologically,
   isCurrentAcademicWeek,
-  isWorkshopClass
+  isWorkshopClass,
+  getSafeMeetingUrl
 } from '../utils/weekUtils';
 import { EditClassModal } from './EditClassModal';
 
@@ -546,20 +547,34 @@ export const DailyView: React.FC<DailyViewProps> = ({
                     )
                   )}
 
-                  {/* Action Buttons: Join Class, Edit Class, Delete Class */}
+                  {/* Action Buttons: Join Meeting, Edit Class, Delete Class (Requirement 32) */}
                   <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2 flex-wrap">
-                    <a
-                      href={
-                        cls.directLink ||
-                        `https://zoom.us/j/${(cls.zoomMeetingId || '81240917731').replace(/\s/g, '')}?pwd=${cls.zoomPassword || 'NARAYANA'}`
+                    {(() => {
+                      const meetingUrl = getSafeMeetingUrl(cls);
+                      if (!meetingUrl) {
+                        return (
+                          <span
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-slate-500 text-xs font-grotesk font-semibold cursor-not-allowed select-none"
+                            title="Meeting link not allotted yet"
+                          >
+                            <Video size={13} className="text-slate-600" />
+                            <span>No Meeting Link</span>
+                          </span>
+                        );
                       }
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-grotesk font-bold text-sky-400 hover:underline"
-                    >
-                      <Video size={13} />
-                      <span>Join Class</span>
-                    </a>
+                      return (
+                        <a
+                          href={meetingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0072BC] hover:bg-[#005fa3] text-white text-xs font-grotesk font-bold shadow-md hover:shadow-sky-500/25 transition cursor-pointer"
+                          title="Open Live Meeting in New Window"
+                        >
+                          <Video size={13} />
+                          <span>Join Meeting</span>
+                        </a>
+                      );
+                    })()}
 
                     <div className="flex items-center gap-1.5 ml-auto">
                       <button
